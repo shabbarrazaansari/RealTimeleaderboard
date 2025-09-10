@@ -6,6 +6,8 @@ const cors = require('cors');
 const connectDB = require('./config/database');
 const { handleScoreUpdate, handleGetLeaderboard } = require('./socketHandlers/leaderboardHandler');
 const leaderboardRoutes = require('./routes/leaderboard');
+console.log("procees.env.MONGODB_URI", process.env.SBR);
+console.log("procees.env.MONGODBURI", process.env.MONGODBURI);
 
 const app = express();
 const server = http.createServer(app);
@@ -34,17 +36,17 @@ app.get('/health', (req, res) => {
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
-  
+
   // Handle score update
   socket.on('score:update', (data, callback) => {
     handleScoreUpdate(socket, data, callback);
   });
-  
+
   // Handle get leaderboard
   socket.on('leaderboard:get', (data, callback) => {
     handleGetLeaderboard(socket, data, callback);
   });
-  
+
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);

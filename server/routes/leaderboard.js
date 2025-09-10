@@ -8,30 +8,30 @@ const router = express.Router();
 router.get('/top', async (req, res) => {
   try {
     const { mode, region, n = 10 } = req.query;
-    
+
     if (!mode) {
       return res.status(400).json({ error: 'Mode parameter is required' });
     }
-    
+
     // Check cache first
     const cached = getCachedLeaderboard(mode, region, parseInt(n));
     if (cached) {
       return res.json({ ok: true, ...cached });
     }
-    
+
     // Get from database
     const leaderboard = await Score.getTopScores(mode, region, parseInt(n));
     const dateKey = Score.getISTDateKey();
-    
+
     const result = {
       ok: true,
       dateKey,
       top: leaderboard
     };
-    
+
     // Cache the result
     setCachedLeaderboard(mode, region, parseInt(n), result);
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error getting leaderboard:', error);
@@ -43,23 +43,23 @@ router.get('/top', async (req, res) => {
 router.post('/score/update', async (req, res) => {
   try {
     const { playerId, playerName, region, mode, delta } = req.body;
-    
+
     // Validate required fields
     if (!playerId || !playerName || !region || !mode || typeof delta !== 'number') {
-      return res.status(400).json({ 
-        error: 'Missing required fields: playerId, playerName, region, mode, delta' 
+      return res.status(400).json({
+        error: 'Missing required fields: playerId, playerName, region, mode, delta'
       });
     }
-    
+
     // Update score in database
     const updatedScore = await Score.updateScore(playerId, playerName, region, mode, delta);
-    
+
     // Invalidate cache for this mode/region
     invalidateCache(mode, region);
-    
+
     // Get updated leaderboard
     const leaderboard = await Score.getTopScores(mode, region, 10);
-    
+
     res.json({
       ok: true,
       current: {
@@ -85,19 +85,19 @@ router.post('/score/update', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const { mode, region } = req.query;
-    consol.log("in the get stats")
-    
+    console.log("in the get stats")
+
     const query = { mode, dateKey: Score.getISTDateKey() };
     if (region) {
       query.region = region;
     }
-    
+
     const totalPlayers = await Score.countDocuments(query);
     const totalScore = await Score.aggregate([
       { $match: query },
       { $group: { _id: null, total: { $sum: '$score' } } }
     ]);
-    
+
     res.json({
       ok: true,
       stats: {
